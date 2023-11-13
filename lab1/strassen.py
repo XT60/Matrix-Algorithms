@@ -44,22 +44,24 @@ class StrassenCalculationEngine:
         M6 = self.multiplyMatrices(A21 - A11, B11 + B12)
         M7 = self.multiplyMatrices(A12 - A22, B21 + B22)
 
+        self.__flops += A11.shape[0]**2 * 10       # ten (+) and (-) operations on every element of a square matrices
 
         return M1, M2, M3, M4, M5, M6, M7
 
     def __recursiveMultiplyMatrices(self, A: np.ndarray, B: np.ndarray):
 
         if A.shape == (1, 1):
-            #self.__flops += 1 
+            self.__flops += 1 
             return A * B
         
         M1, M2, M3, M4, M5, M6, M7 = self.__defineAuxiliaryMatrices(A, B)
         
-        C1 = M1 + M4 - M5 + M7
-        C2 = M3 + M5
-        C3 = M2 + M4
+        C1 = M1 + M4 - M5 + M7    
+        C2 = M3 + M5              
+        C3 = M2 + M4              
         C4 = M1 - M2 + M3 + M6
 
+        self.__flops += M1.shape[0]**2 *8          # eight (+) and (-) operations on every element of a square matrices
 
         return np.vstack((np.hstack((C1, C2)), np.hstack((C3, C4))))
     
@@ -72,11 +74,9 @@ class StrassenCalculationEngine:
             raise ValueError("Number of columns in matrix A must be equal to the number of rows in matrix B.")
 
         
-        if A.shape != B.shape:
-            rows, cols = A.shape
-            if rows != cols or not (rows & (rows - 1) == 0):
-                A = self.__adjustMatrixSize(A.copy())
-                B = self.__adjustMatrixSize(B.copy())
+        if A.shape != B.shape or not (original_rows_A & (original_rows_A - 1) == 0):     # check if the matrices are 2^n x 2^n size to avoid additional calculations
+            A = self.__adjustMatrixSize(A.copy())
+            B = self.__adjustMatrixSize(B.copy())
 
         C = self.__recursiveMultiplyMatrices(A, B)
 

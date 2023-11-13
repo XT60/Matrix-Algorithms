@@ -58,9 +58,7 @@ class BinetCalculationEngine():
         if original_cols_A != original_rows_B:
             raise ValueError("Number of columns in matrix A must be equal to the number of rows in matrix B.")
 
-        if A.shape != B.shape:
-            rows, cols = A.shape
-            if rows != cols or not (rows & (rows - 1) == 0):
+        if A.shape != B.shape or not (original_rows_A & (original_rows_A - 1) == 0):     # check if the matrices are 2^n x 2^n size to avoid additional calculations
                 A = self.__adjustMatrixSize(A.copy())
                 B = self.__adjustMatrixSize(B.copy())
 
