@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os.path
 
 
-MAX_WAIT_TIME = 120 # in seconds
+MAX_WAIT_TIME = 50 # in seconds
 TESTING_MATRIX_SIZES = [2**i for i in range(2, 16)]
 
 class Analytics: 
@@ -16,20 +16,17 @@ class Analytics:
 def getRandomMatrix(size: int, low: float = 0.00000001, high: float = 1.0):
     return np.random.uniform(low, high, size=(size, size))
 
-def getAnalyticsArr(CalculationEngine) -> list[Analytics]:
+def getAnalyticsArr(timedFunction) -> list[Analytics]:
     analyticsArr = []
 
     for size in TESTING_MATRIX_SIZES:
         startTime = time.time()
-        
-        A = getRandomMatrix(size)
-        B = getRandomMatrix(size)
-        calculator = CalculationEngine()
-        calculator.multiplyMatrices(A, B)
+
+        flops = timedFunction(size)
         
         deltaTime = time.time() - startTime
 
-        analytics = Analytics(size, deltaTime, calculator.getFlops())
+        analytics = Analytics(size, deltaTime, flops)
 
         analyticsArr.append(analytics)
 

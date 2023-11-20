@@ -5,6 +5,19 @@ from strassen import strassen
 from inverse import inverse
 
 
+class LUCalculationEngine:
+    __flops = 0
+
+    def resetCounter(self):
+        self.__flops = 0
+
+    def getFlops(self):
+        return self.__flops
+
+    def LU(self, A: np.ndarray):
+        pass
+
+
 def LU(A: np.ndarray):
     if A.shape == (1, 1):
         return np.array([[1]]), A, 0
