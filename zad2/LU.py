@@ -1,12 +1,14 @@
 import numpy as np
 import math
 from utils import split_matrix
-from strassen import strassen
-from inverse import inverse
+from strassen import StrassenCalculationEngine
+from inverse import InverseCalculationEngine
 
 
 class LUCalculationEngine:
     __flops = 0
+    strassen = StrassenCalculationEngine()
+    inverse = InverseCalculationEngine()
 
     def resetCounter(self):
         self.__flops = 0
@@ -15,32 +17,42 @@ class LUCalculationEngine:
         return self.__flops
 
     def LU(self, A: np.ndarray):
-        pass
+        # resetting counter
+        self.resetCounter()
+        self.strassen.resetCounter()
 
+        # calculations
+        result = self.__LUInner(A)
 
-def LU(A: np.ndarray):
-    if A.shape == (1, 1):
-        return np.array([[1]]), A, 0
+        # updating counter
+        self.__flops += self.strassen.getFlops()
+        self.__flops += self.inverse.getFlops()
 
-    count = [0] * 10
-    A11, A12, A21, A22 = split_matrix(A)
+        return result
 
-    L11, U11, count[0] = LU(A11)
-    L11_inv, count[1] = inverse(L11)
-    U11_inv, count[2] = inverse(U11)
+    def __LUInner(self, A: np.ndarray):
+        if A.shape == (1, 1):
+            return np.array([[1]]), A
 
-    L21, count[3] = strassen(A21, U11_inv)
-    U12, count[4] = strassen(L11_inv, A12)
+        A11, A12, A21, A22 = split_matrix(A)
 
-    S, count[5] = strassen(A21, U11_inv)
-    S, count[6] = strassen(S, L11_inv)
-    S, count[7] = strassen(S, A12)
-    S, count[8] = A22 - S, math.prod(S.shape)
+        L11, U11 = self.__LUInner(A11)
+        L11_inv = self.inverse.inverse(L11)
+        U11_inv = self.inverse.inverse(U11)
 
-    L22, U22, count[9] = LU(S)
+        L21 = self.strassen.multiplyMatrices(A21, U11_inv)
+        U12 = self.strassen.multiplyMatrices(L11_inv, A12)
 
-    return (
-        np.vstack((np.hstack((L11, np.zeros_like(A12))), np.hstack((L21, L22)))),
-        np.vstack((np.hstack((U11, U12)), np.hstack((np.zeros_like(A21), U22)))),
-        sum(count)
-    )
+        S = self.strassen.multiplyMatrices(A21, U11_inv)
+        S = self.strassen.multiplyMatrices(S, L11_inv)
+        S = self.strassen.multiplyMatrices(S, A12)
+        S = A22 - S
+        
+        self.__flops += S.shape[0] ** 2 # one operation for every element on square matrix
+
+        L22, U22 = self.__LUInner(S)
+
+        return (
+            np.vstack((np.hstack((L11, np.zeros_like(A12))), np.hstack((L21, L22)))),
+            np.vstack((np.hstack((U11, U12)), np.hstack((np.zeros_like(A21), U22))))
+        )

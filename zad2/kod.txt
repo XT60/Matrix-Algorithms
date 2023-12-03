@@ -1,0 +1,263 @@
+import numpy as np
+from LU import LUCalculationEngine
+
+tolerance = 0.00001
+
+class DetCalculationEngine:
+    __flops = 0
+    lu = LUCalculationEngine()
+
+    def resetCounter(self):
+        self.__flops = 0
+
+    def getFlops(self):
+        return self.__flops
+
+    def det(self, A: np.ndarray):
+        self.resetCounter()
+        self.lu.resetCounter()
+
+        L, U = self.lu.LU(A)
+        res = np.prod(np.diagonal(U))
+        
+        self.__flops += self.lu.getFlops() + A.shape[0] - 1
+        
+        return res
+
+def checkDetResult(initial_matrix: np.ndarray, det):
+    proper_det = np.linalg.det(initial_matrix)
+    return np.abs(proper_det, det) < tolerance
+    
+    
+    
+import numpy as np
+import math
+from utils import split_matrix
+from strassen import StrassenCalculationEngine
+
+tolerance = 0.00001
+
+class InverseCalculationEngine:
+    __flops = 0
+    strassen = StrassenCalculationEngine()
+
+    def resetCounter(self):
+        self.__flops = 0
+
+    def getFlops(self):
+        return self.__flops
+
+    def inverse(self, A: np.ndarray):
+        # reseting counter
+        self.resetCounter()
+        self.strassen.resetCounter()
+        
+        # calculations
+        result = self.__inverseInner(A)
+
+        # updating counter
+        self.__flops += self.strassen.getFlops()
+
+        return result
+
+    def __inverseInner(self, A: np.ndarray):
+        if A.shape == (1, 1):
+            x = 1 / A[0, 0]
+            self.__flops += 1
+            return np.array([[x]])
+
+        A11, A12, A21, A22 = split_matrix(A)
+
+        # A11_inv = inverse(A11)
+        A11_inv= self.__inverseInner(A11)
+
+        # S22 = A22 - A21 @ A11_inv @ A12
+        S22 = self.strassen.multiplyMatrices(A21, A11_inv)
+        S22 = self.strassen.multiplyMatrices(S22, A12)
+        S22 = A22 - S22
+        self.__flops += math.prod(A.shape)
+
+        # S22_inv = inverse(S22)
+        S22_inv = self.__inverseInner(S22)
+
+        # B11 = A11_inv @ (I + A12 @ S22_inv @ A21 @ A11_inv)
+        I = np.eye(A11.shape[0])
+        B11 = self.strassen.multiplyMatrices(A12, S22_inv)
+        B11 = self.strassen.multiplyMatrices(B11, A21)
+        B11 = self.strassen.multiplyMatrices(B11, A11_inv)
+        B11 = I + B11
+        self.__flops += A11.shape[0]
+        B11 = self.strassen.multiplyMatrices(A11_inv, B11)
+
+        # B12 = -1 * (A11_inv @ A12 @ S22_inv)
+        B12 = self.strassen.multiplyMatrices(A11_inv, A12)
+        B12 = self.strassen.multiplyMatrices(B12, S22_inv)
+        B12 = -1 * B12
+        self.__flops = math.prod(B12.shape)
+
+        # B21 = -1 * (S22_inv @ A21 @ A11_inv)
+        B21 = self.strassen.multiplyMatrices(S22_inv, A21)
+        B21 = self.strassen.multiplyMatrices(B21, A11_inv)
+        B21 = -1 * B21
+        self.__flops = math.prod(B21.shape)
+
+        return np.vstack((np.hstack((B11, B12)), np.hstack((B21, S22_inv))))
+
+
+def checkInverseResult(initial_matrix, inverted_matrix):
+    size = initial_matrix.shape[0]
+    check = np.abs(initial_matrix @ inverted_matrix - np.eye(size))
+    return np.all(check < tolerance)
+    
+    
+    
+    
+    
+    
+    
+import numpy as np
+import math
+from utils import split_matrix
+from strassen import StrassenCalculationEngine
+from inverse import InverseCalculationEngine
+
+
+class LUCalculationEngine:
+    __flops = 0
+    strassen = StrassenCalculationEngine()
+    inverse = InverseCalculationEngine()
+
+    def resetCounter(self):
+        self.__flops = 0
+
+    def getFlops(self):
+        return self.__flops
+
+    def LU(self, A: np.ndarray):
+        # resetting counter
+        self.resetCounter()
+        self.strassen.resetCounter()
+
+        # calculations
+        result = self.__LUInner(A)
+
+        # updating counter
+        self.__flops += self.strassen.getFlops()
+        self.__flops += self.inverse.getFlops()
+
+        return result
+
+    def __LUInner(self, A: np.ndarray):
+        if A.shape == (1, 1):
+            return np.array([[1]]), A
+
+        A11, A12, A21, A22 = split_matrix(A)
+
+        L11, U11 = self.__LUInner(A11)
+        L11_inv = self.inverse.inverse(L11)
+        U11_inv = self.inverse.inverse(U11)
+
+        L21 = self.strassen.multiplyMatrices(A21, U11_inv)
+        U12 = self.strassen.multiplyMatrices(L11_inv, A12)
+
+        S = self.strassen.multiplyMatrices(A21, U11_inv)
+        S = self.strassen.multiplyMatrices(S, L11_inv)
+        S = self.strassen.multiplyMatrices(S, A12)
+        S = A22 - S
+        
+        self.__flops += S.shape[0] ** 2 # one operation for every element on square matrix
+
+        L22, U22 = self.__LUInner(S)
+
+        return (
+            np.vstack((np.hstack((L11, np.zeros_like(A12))), np.hstack((L21, L22)))),
+            np.vstack((np.hstack((U11, U12)), np.hstack((np.zeros_like(A21), U22))))
+        )
+
+import numpy as np
+import math
+
+class StrassenCalculationEngine:
+    __flops = 0 #  tracker for number of floating point operations
+
+    def resetCounter(self):
+        self.__flops = 0
+
+    def getFlops(self):
+        return self.__flops
+    
+    def __adjustMatrixSize(self, M: np.ndarray):
+        rows, cols = M.shape
+
+        new_rows = 2**math.ceil(math.log2(rows))
+        new_cols = 2**math.ceil(math.log2(cols))
+
+        new_dim = max(new_cols, new_rows)
+        if rows < new_rows or cols < new_cols:
+            zero_rows = new_dim - rows
+            zero_cols = new_dim - cols
+            M = np.pad(M, ((0, zero_rows), (0, zero_cols)), mode='constant', constant_values=0)
+
+        return M
+    
+    def __removeExtraZeros(self, C: np.ndarray, original_rows: int, original_cols: int):
+        return C[:original_rows, :original_cols]
+    
+    def __splitMatrix(self, M: np.ndarray):
+        n = M.shape[0] // 2
+        return M[:n, :n], M[:n, n:], M[n:, :n], M[n:, n:]
+
+    def __defineAuxiliaryMatrices(self, A: np.ndarray, B: np.ndarray):
+
+        A11, A12, A21, A22 = self.__splitMatrix(A)
+        B11, B12, B21, B22 = self.__splitMatrix(B)
+
+        M1 = self.multiplyMatrices(A11 + A22, B11 + B22)
+        M2 = self.multiplyMatrices(A21 + A22, B11)
+        M3 = self.multiplyMatrices(A11, B12 - B22)
+        M4 = self.multiplyMatrices(A22, B21 - B11)
+        M5 = self.multiplyMatrices(A11 + A12, B22)
+        M6 = self.multiplyMatrices(A21 - A11, B11 + B12)
+        M7 = self.multiplyMatrices(A12 - A22, B21 + B22)
+
+        self.__flops += A11.shape[0]**2 * 10       # ten (+) and (-) operations on every element of a square matrices
+
+        return M1, M2, M3, M4, M5, M6, M7
+
+    def __recursiveMultiplyMatrices(self, A: np.ndarray, B: np.ndarray):
+
+        if A.shape == (1, 1):
+            self.__flops += 1 
+            return A * B
+        
+        M1, M2, M3, M4, M5, M6, M7 = self.__defineAuxiliaryMatrices(A, B)
+        
+        C1 = M1 + M4 - M5 + M7    
+        C2 = M3 + M5              
+        C3 = M2 + M4              
+        C4 = M1 - M2 + M3 + M6
+
+        self.__flops += M1.shape[0]**2 *8          # eight (+) and (-) operations on every element of a square matrices
+
+        return np.vstack((np.hstack((C1, C2)), np.hstack((C3, C4))))
+    
+    def multiplyMatrices(self, A: np.ndarray, B: np.ndarray):
+
+        original_rows_A, original_cols_A = A.shape
+        original_rows_B, original_cols_B = B.shape
+
+        if original_cols_A != original_rows_B:
+            raise ValueError("Number of columns in matrix A must be equal to the number of rows in matrix B.")
+
+        
+        if A.shape != B.shape or not (original_rows_A & (original_rows_A - 1) == 0):     # check if the matrices are 2^n x 2^n size to avoid additional calculations
+            A = self.__adjustMatrixSize(A.copy())
+            B = self.__adjustMatrixSize(B.copy())
+
+        C = self.__recursiveMultiplyMatrices(A, B)
+
+        return self.__removeExtraZeros(C, original_rows_A, original_cols_B)
+    
+    
+    
+

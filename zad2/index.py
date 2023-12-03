@@ -4,14 +4,14 @@ from LU import LUCalculationEngine
 from analytics import * 
 
 # inverse
-def inverseTimedFunction(size): 
-    A = getRandomMatrix(size)
-    engine = InverseCalculationEngine()
-    engine.inverse(A)
-    return engine.getFlops()
+# def inverseTimedFunction(size): 
+#     A = getRandomMatrix(size)
+#     engine = InverseCalculationEngine()
+#     engine.inverse(A)
+#     return engine.getFlops()
 
-analyticsArr = getAnalyticsArr(inverseTimedFunction)
-plotAnalytics(analyticsArr, "./img/inverse")
+# analyticsArr = getAnalyticsArr(inverseTimedFunction)
+# plotAnalytics(analyticsArr, "./img/inverse")
 
 # # lu
 # def inverseTimedFunction(size): 
@@ -23,13 +23,13 @@ plotAnalytics(analyticsArr, "./img/inverse")
 # analyticsArr = getAnalyticsArr(inverseTimedFunction)
 # plotAnalytics(analyticsArr, "./img/lu")
 
-# # det
-# def inverseTimedFunction(size): 
-#     A = getRandomMatrix(size)
-#     engine = DetCalculationEngine()
-#     engine.det(A)
-#     return engine.getFlops()
+# det
+def inverseTimedFunction(size): 
+    A = getRandomMatrix(size)
+    engine = DetCalculationEngine()
+    engine.det(A)
+    return engine.getFlops()
 
-# analyticsArr = getAnalyticsArr(inverseTimedFunction)
-# plotAnalytics(analyticsArr, "./img/det")
+analyticsArr = getAnalyticsArr(inverseTimedFunction)
+plotAnalytics(analyticsArr, "./img/det")
 

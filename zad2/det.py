@@ -5,7 +5,7 @@ tolerance = 0.00001
 
 class DetCalculationEngine:
     __flops = 0
-    lu = LUCalculationEngine
+    lu = LUCalculationEngine()
 
     def resetCounter(self):
         self.__flops = 0
