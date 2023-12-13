@@ -1,0 +1,195 @@
+import numpy as np
+from scipy.sparse.linalg import svds
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+
+class DecompositionNode:
+    def __init__(self, rows, cols, rank):
+        self.rows = rows
+        self.cols = cols
+        self.rank = rank
+        self.U = None
+        self.Sigma = None
+        self.VT = None
+        self.full_matrix = None
+        self.children = []
+
+    def __get_matrix_to_draw(self):
+        if self.rank is not None:
+            if self.rank > 0:
+                matrix = np.zeros((self.rows, self.cols))
+                matrix[:, :self.rank] = 1
+                matrix[:self.rank, :] = 1
+                return matrix
+            else:
+                return np.zeros((self.rows, self.cols))
+        elif self.full_matrix is not None:
+            return np.ones((self.rows, self.cols))
+        else:
+            return np.vstack(
+                (
+                    np.hstack((self.children[0].__get_matrix_to_draw(), self.children[1].__get_matrix_to_draw())),
+                    np.hstack((self.children[2].__get_matrix_to_draw(), self.children[3].__get_matrix_to_draw())),
+                )
+            )
+
+    def draw_matrix(self, img_name=None, title = "Bar plot"):
+        fig, ax = plt.subplots(figsize=(16, 9))
+        ax.matshow(self.__get_matrix_to_draw(), cmap=ListedColormap(['w', 'k']))
+        if img_name:
+            ax.set_title(title)  # Set the title using ax.set_title
+            plt.savefig(img_name)
+            plt.close()
+
+
+def split_matrix(M: np.ndarray):
+    rows = M.shape[0] // 2
+    return M[:rows, :rows], M[:rows, rows:], M[rows:, :rows], M[rows:, rows:]
+
+
+def compress_matrix(M, max_rank, min_singular_val):
+    if not np.any(M):
+        return DecompositionNode(*M.shape, 0)
+
+    if min(M.shape[0], M.shape[1]) <= max_rank + 1:
+        # Matrix is small enough, no need for further compression
+        node = DecompositionNode(*M.shape, None)
+        node.full_matrix = M
+        return node
+
+    U, Sigma, VT = svds(M, max_rank + 1)
+
+    if abs(Sigma[0]) < min_singular_val:
+        # Compress
+        node = DecompositionNode(*M.shape, max_rank)
+        node.U = U[:, 1:]
+        node.Sigma = Sigma[1:]
+        node.Sigma[node.Sigma < min_singular_val] = 0
+        node.VT = VT[1:]
+    else:
+        # Divide
+        M11, M12, M21, M22 = split_matrix(M)
+        node = DecompositionNode(*M.shape, None)
+        node.children = [
+            compress_matrix(M11, max_rank, min_singular_val),
+            compress_matrix(M12, max_rank, min_singular_val),
+            compress_matrix(M21, max_rank, min_singular_val),
+            compress_matrix(M22, max_rank, min_singular_val)
+        ]
+
+    return node
+
+
+def decompress_matrix(node):
+    if node.rank is not None:
+        if node.rank > 0:
+            return node.U @ (np.diag(node.Sigma) @ node.VT)
+        else:
+            return np.zeros((node.rows, node.cols))
+    elif node.full_matrix is not None:
+        return node.full_matrix
+    else:
+        return np.vstack(
+            (
+                np.hstack((decompress_matrix(node.children[0]), decompress_matrix(node.children[1]))),
+                np.hstack((decompress_matrix(node.children[2]), decompress_matrix(node.children[3]))),
+            )
+        )
+
+from utils import generate_sparse_matrix, get_square_diff, plot_graph
+from scipy.sparse.linalg import svds
+from compress import compress_matrix, decompress_matrix
+import time
+
+SPARSITY_VALUES = [99, 98, 95, 90, 80]
+K = 10
+TEST_SHAPE = (2**K, 2**K)
+
+TEST_MAX_RANK = [1,1,1,4,4,4]
+TEST_MIN_SINGULAR_VAL_IDX = [2, 2**K-2, 2**K/2, 2, 2**K-2, 2**K/2] 
+
+def tests():
+    compress_times = []
+    decompress_times = []
+    diffs = []
+    labels = []
+
+    for i, sparsity in enumerate(SPARSITY_VALUES):
+        matrix = generate_sparse_matrix(TEST_SHAPE, sparsity)
+
+        U, Sigma, VT = svds(matrix, 2**K - 1)
+
+        for max_rank, min_singular_val_idx in zip(TEST_MAX_RANK, TEST_MIN_SINGULAR_VAL_IDX):
+            min_singular_val = Sigma[round(min_singular_val_idx)]
+            
+            start = time.time()
+            compressed_matrix = compress_matrix(matrix, max_rank, min_singular_val)
+
+            end_compress = time.time()
+            compress_time = end_compress - start
+
+            new_matrix = decompress_matrix(compressed_matrix)
+
+            end_decompress = time.time()
+            decompress_time = end_decompress - end_compress
+
+            compress_times.append(compress_time)
+            decompress_times.append(decompress_time)
+
+            label =  "r=" + str(max_rank) + "_ie=" + str(round(min_singular_val_idx))
+            labels.append(label)
+            img_path = "./img/" + str(sparsity) + "_" + label + '.png' 
+            compressed_matrix.draw_matrix(
+                img_path,
+                "sparsity=" + str(sparsity) + " r=" + str(max_rank) + " e_index=" + str(round(min_singular_val_idx))+ " e=" + str(round(min_singular_val, 4))
+            )
+            print("done", img_path)
+
+            diffs.append(get_square_diff(matrix, new_matrix))
+
+        l = len(TEST_MAX_RANK)
+        plot_graph(labels[i * l: (i+1)* l], compress_times[i * l: (i+1)* l], "Compression Time For Sparsity=" + str(sparsity), "./img/compression_time_sparsity=" + str(sparsity) + ".png")
+        plot_graph(labels[i * l: (i+1)* l], decompress_times[i * l: (i+1)* l], "Decompression Time For Sparsity=" + str(sparsity), "./img/decompression_time_sparsity=" + str(sparsity) + ".png")
+        plot_graph(labels[i * l: (i+1)* l], diffs[i * l: (i+1)* l], "Compression <-> Decompression Cycle Difference For Sparsity=" + str(sparsity), "./img/cycle_diff_sparsity=" + str(sparsity) + ".png")
+
+
+
+# matrix = generate_sparse_matrix((1000, 1000), 99)
+# node = compress_matrix(matrix, 5, 0.01)
+# node.draw_matrix("./loik.png")
+# new_matrix = decompress_matrix(node)
+# print(get_square_diff(matrix, new_matrix))
+
+
+tests()
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def generate_sparse_matrix(shape, sparsity):
+    random_matrix = np.random.rand(*shape)
+    threshold = np.percentile(random_matrix, sparsity)
+    sparse_matrix = np.where(random_matrix > threshold, random_matrix, 0)
+    return sparse_matrix
+
+def get_square_diff(m1, m2):
+    squared_diff = np.square(m1 - m2)
+    return np.sum(squared_diff)
+
+def plot_graph(labels, values, title="Bar Plot", file_name= None, xlabel="Labels", ylabel="Values"):
+    # Check if the length of labels and values match
+    if len(labels) != len(values):
+        raise ValueError("Number of labels must match the number of values.")
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    plt.bar(labels, values, color='blue')
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    if file_name == None:
+        plt.show()
+    else:
+        plt.savefig(file_name)
+        plt.close()
