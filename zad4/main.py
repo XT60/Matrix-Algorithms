@@ -20,13 +20,13 @@ for k in [2, 3, 4]:
 
     permutated_matrix = permutation_engine.permutate(matrix.copy())
     sparse_draw(permutated_matrix, f"./zad4/data/k_{k}/2c-min_deg.png",
-                title=f'k = {k} Matrix after reversed Minimum-Degree Algorithm')
+                title=f'k = {k} Matrix after Minimum-Degree Algorithm')
     
 
     #draw matrix after compressiona and permutation
     compressed_permutated_matrix = compress_matrix(permutated_matrix, max_rank=4, min_singular_val=0)
     compressed_permutated_matrix.draw_matrix(f"./zad4/data/k_{k}/2d-min_deg.png",
-                                             title=f'k = {k} Matrix after reversed Minimum-Degree Algorithm and compression')
+                                             title=f'k = {k} Matrix after Minimum-Degree Algorithm and compression')
 
 
 
@@ -51,7 +51,7 @@ for k in [2, 3, 4]:
 
     permutated_matrix = permutation_engine.permutate(matrix.copy())
     sparse_draw(permutated_matrix, f"./zad4/data/k_{k}/2c-cut_mc.png",
-                title=f'k = {k} Matrix after reversed Cuthill & McKee Algorithm')
+                title=f'k = {k} Matrix after Cuthill & McKee Algorithm')
     
 
     #draw matrix after compressiona and permutation

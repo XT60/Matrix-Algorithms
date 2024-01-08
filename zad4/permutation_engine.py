@@ -9,7 +9,8 @@ class PermutationEngine:
     def __init__(self, algorithm):
         self.permutation_algorithm = {'minimum_degree': self._minimum_degree_permutation,
                             'cuthill_mckee': self._cuthill_mckee,
-                            'reversed_cuthill_mckee': self._reversed_cuthill_mckee}.get(algorithm)
+                            'reversed_cuthill_mckee': self._reversed_cuthill_mckee
+                            }.get(algorithm)
 
 
     def _minimum_degree_permutation(self, matrix):
@@ -59,7 +60,7 @@ class PermutationEngine:
         sorted_nodes = list(map(lambda x : x[0], sorted_nodes))
         Q = deque()
 
-        # BFS Algorithm
+        # Algorithm
         for s in sorted_nodes:
             if not visited[s]:
                 Q.append(s)
