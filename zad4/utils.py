@@ -18,16 +18,13 @@ def generate_3d_matrix_mesh(k):
         for y in range(size):
             for x in range(size):
                 idx = x + y*size + z*size*size
-
                 # x_plane
                 _complete_connections_in_plane(position=x, step=dx, index=idx, mesh=mesh, size=size) 
-
                 # y_plane
                 _complete_connections_in_plane(position=y, step=dy, index=idx, mesh=mesh, size=size) 
-
                 # z_plane
-                _complete_connections_in_plane(position=z, step=dz, index=idx, mesh=mesh, size=size) 
-
+                _complete_connections_in_plane(position=z, step=dz, index=idx, mesh=mesh, size=size)
+                
     return mesh
 
 

@@ -13,41 +13,37 @@ class PermutationEngine:
 
 
     def _minimum_degree_permutation(self, matrix):
-        n,m = matrix.shape
-        ADJ = {i:set() for i in range(n)}
-        for i in range(n):
-            for j in range(m):
-                if matrix[i][j] != 0 and i != j:
-                    ADJ[i].add(j)
+        # Initialisation
+        n = len(matrix)
         permutation = []
+        G = {i:set() for i in range(n)}
+
         for i in range(n):
-            deg_min = m+1
-            for v, adj in ADJ.items():
-                if len(adj) < deg_min:
-                    v_min = v
-                    deg_min = len(adj)
-            for v in ADJ:
-                ADJ[v] = ADJ[v].difference([v_min])
-            for u in ADJ[v_min]:
-                ADJ[u] = (ADJ[u].union(ADJ[v_min].difference([u])))
-            ADJ.pop(v_min)
-            permutation.append(v_min)
+            for j in range(n):
+                if matrix[i][j] != 0 and i != j:
+                    G[i].add(j)
+        
+        # Algorithm
+        for i in range(n):
+            min_degree = n+1
+            for v, adj in G.items():
+                if len(adj) < min_degree:
+                    p = v
+                    min_degree = len(adj)
+            for v in G:
+                G[v] = G[v].difference([p])
+            for u in G[p]:
+                G[u] = (G[u].union(G[p].difference([u])))
+            G.pop(p)
+            permutation.append(p)
+
+
         return permutation
 
-    def _cuthill_mckee(self, matrix):
+    def _cuthill_mckee(self, matrix):         
+        # Initialisation
 
-        def BFS():
-            while Q:
-                v = Q.popleft()
-                if Visited[v]:
-                    continue
-                permutation.append(v)
-                Visited[v] = True
-                for u in sorted(nx.neighbors(G, v), key = lambda x : G.degree(x)):
-                    if not Visited[u]:
-                        Q.append(u)
         n = len(matrix)
-        
         G = nx.Graph()
         G.add_nodes_from(range(n))
         
@@ -57,15 +53,24 @@ class PermutationEngine:
                     G.add_edge(i, j)
 
         permutation = []
-        Visited = [False for i in range(n)]
+        visited = [False for i in range(n)]
         sorted_nodes = sorted([x for x in G.degree()], key = lambda x : x[1])
-        # print(sorted_nodes)
+
         sorted_nodes = list(map(lambda x : x[0], sorted_nodes))
         Q = deque()
+
+        # BFS Algorithm
         for s in sorted_nodes:
-            if not Visited[s]:
+            if not visited[s]:
                 Q.append(s)
-                BFS()
+                while Q:
+                    v = Q.popleft()
+                    if not visited[v]:
+                        permutation.append(v)
+                        visited[v] = True
+                        for u in sorted(nx.neighbors(G, v), key = lambda x : G.degree(x)):
+                            if not visited[u]:
+                                Q.append(u)
         
         return permutation
 
