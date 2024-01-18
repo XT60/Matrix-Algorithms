@@ -54,11 +54,11 @@ class DecompositionNode:
         # directly multiply
         if len(self.children) == 0:
             if self.full_matrix is not None:
-                return self.full_matrix @ vector.reshape(-1, 1)
+                return np.squeeze(self.full_matrix @ vector.reshape(-1, 1))
             else:
-                U = self.U if self.U else np.zeros(self.rows, dtype=float) 
-                VT = self.VT if self.VT else np.zeros(self.cols, dtype=float)
-                return U * np.dot(VT, vector)
+                U = self.U if self.U is not None else np.zeros(self.rows, dtype=float) 
+                VT = self.VT if self.VT is not None else np.zeros(self.cols, dtype=float)
+                return np.squeeze(U * np.dot(VT, vector))
         
         # divide vector and call multiplication recursively
         else:
@@ -66,10 +66,10 @@ class DecompositionNode:
             upper_input_vector = vector[:half_length]
             lower_input_vector = vector[half_length:]
 
-            upper_output_vector = self.children[0].multiply_by_vector(upper_input_vector) + self.children[1].multiply_by_vector(upper_input_vector)
-            lower_output_vector = self.children[2].multiply_by_vector(lower_input_vector) + self.children[3].multiply_by_vector(lower_input_vector) 
+            upper_output_vector = np.squeeze(self.children[0].multiply_by_vector(upper_input_vector) + self.children[1].multiply_by_vector(upper_input_vector))
+            lower_output_vector = np.squeeze(self.children[2].multiply_by_vector(lower_input_vector) + self.children[3].multiply_by_vector(lower_input_vector))
 
-            return np.concatenate((upper_output_vector, lower_output_vector))
+            return np.concatenate((upper_output_vector, lower_output_vector), axis=0)
 
 
 def split_matrix(M: np.ndarray):
@@ -77,7 +77,7 @@ def split_matrix(M: np.ndarray):
     return M[:rows, :rows], M[:rows, rows:], M[rows:, :rows], M[rows:, rows:]
 
 
-def compress_matrix(M, max_rank = 1, min_singular_val = 0):
+def compress_matrix(M, max_rank = 1, min_singular_val = 1):
     if not np.any(M):
         return DecompositionNode(*M.shape, 0)
 
@@ -128,13 +128,13 @@ def decompress_matrix(node):
 
 
 
-matrix = np.array([[1.0, 2.0, 3.0, 4.0],
-                   [5.0, 6.0, 7.0, 8.0],
-                   [9.0, 10.0, 11.0, 12.0],
-                   [13.0, 14.0, 15.0, 16.0]])
-vector = np.array([1.0, 1.0, 1.0, 1.0])
+# matrix = np.array([[1.0, 2.0, 3.0, 4.0],
+#                    [5.0, 6.0, 7.0, 8.0],
+#                    [9.0, 10.0, 11.0, 12.0],
+#                    [13.0, 14.0, 15.0, 16.0]])
+# vector = np.array([1.0, 1.0, 1.0, 1.0])
 
-M = compress_matrix(matrix)
-res = M.multiply_by_vector(vector)
-print(res)
-print(matrix @ vector)
+# M = compress_matrix(matrix)
+# res = M.multiply_by_vector(vector)
+# print(res)
+# print(matrix @ vector)
