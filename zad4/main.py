@@ -5,12 +5,13 @@ from permutation_engine import PermutationEngine
 for k in [2, 3, 4]:
     matrix = generate_3d_matrix_mesh(k)
 
+
     #draw matrix before compression
     sparse_draw(matrix, f"./zad4/data/k_{k}/2a.png",
                 title=f'k = {k} Matrix')
 
     #draw matrix after compression
-    compressed_matrix = compress_matrix(matrix.copy(), max_rank=4, min_singular_val=0)
+    compressed_matrix = compress_matrix(matrix.copy())
     compressed_matrix.draw_matrix(f"./zad4/data/k_{k}/2b.png",
                                   title=f'k = {k} Matrix after compression')
     
@@ -24,10 +25,9 @@ for k in [2, 3, 4]:
     
 
     #draw matrix after compressiona and permutation
-    compressed_permutated_matrix = compress_matrix(permutated_matrix, max_rank=4, min_singular_val=0)
+    compressed_permutated_matrix = compress_matrix(permutated_matrix)
     compressed_permutated_matrix.draw_matrix(f"./zad4/data/k_{k}/2d-min_deg.png",
                                              title=f'k = {k} Matrix after Minimum-Degree Algorithm and compression')
-
 
 
     # Reversed-Cuthil-Mckee
@@ -40,7 +40,7 @@ for k in [2, 3, 4]:
     
 
     #draw matrix after compressiona and permutation
-    compressed_permutated_matrix = compress_matrix(permutated_matrix, max_rank=4, min_singular_val=0)
+    compressed_permutated_matrix = compress_matrix(permutated_matrix)
     compressed_permutated_matrix.draw_matrix(f"./zad4/data/k_{k}/2d-rev_cut_mc.png", 
                                              title=f'k = {k} Matrix after reversed Cuthill & McKee Algorithm and compression')
 
@@ -55,6 +55,6 @@ for k in [2, 3, 4]:
     
 
     #draw matrix after compressiona and permutation
-    compressed_permutated_matrix = compress_matrix(permutated_matrix, max_rank=4, min_singular_val=0)
+    compressed_permutated_matrix = compress_matrix(permutated_matrix)
     compressed_permutated_matrix.draw_matrix(f"./zad4/data/k_{k}/2d-cut_mc.png",
                                              title=f'k = {k} Matrix after Cuthill & McKee Algorithm and compression')

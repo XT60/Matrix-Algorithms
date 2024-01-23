@@ -8,7 +8,7 @@ K_VALUES = [2, 3, 4]
 def tests():
     multiply_times = []
     sq_errors = []
-    img_path = "./img/"
+    img_path = "./zad5/img/"
 
     for k in K_VALUES:
         matrix = generate_3d_matrix_mesh(k)

@@ -47,7 +47,7 @@ def split_matrix(M: np.ndarray):
     return M[:rows, :rows], M[:rows, rows:], M[rows:, :rows], M[rows:, rows:]
 
 
-def compress_matrix(M, max_rank, min_singular_val):
+def compress_matrix(M, max_rank=1, min_singular_val=1):
     if not np.any(M):
         return DecompositionNode(*M.shape, 0)
 

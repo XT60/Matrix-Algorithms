@@ -76,14 +76,10 @@ def _complete_connections_in_plane(position, step, index, mesh, size):
 #     plt.savefig(img_name)
 
 def sparse_draw(matrix, img_name=None, title="Bar plot"):
-    rows, cols = matrix.shape
-
-    if matrix.ndim != 2:
-        raise ValueError("Input must be a 2D numpy array.")
-
+    matrix_to_draw = np.where(matrix.copy() != 0, 1, 0)
 
     fig, ax = plt.subplots(figsize=(16, 9))
-    ax.matshow(matrix, cmap=plt.cm.get_cmap("binary", 2))  # "binary" colormap with 2 colors (black and white)
+    ax.matshow(matrix_to_draw, cmap=plt.cm.get_cmap("binary", 2))
 
     if img_name:
         ax.set_title(title)

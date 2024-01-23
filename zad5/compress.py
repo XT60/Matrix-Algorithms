@@ -110,6 +110,8 @@ def compress_matrix(M, max_rank = 1, min_singular_val = 1):
     return node
 
 
+
+
 def decompress_matrix(node):
     if node.rank is not None:
         if node.rank > 0:
@@ -125,6 +127,8 @@ def decompress_matrix(node):
                 np.hstack((decompress_matrix(node.children[2]), decompress_matrix(node.children[3]))),
             )
         )
+    
+
 
 
 
